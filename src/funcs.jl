@@ -6,7 +6,7 @@ const PSID = PowerSimulationsDynamics
 
 function create_ZIPE_load(sys, load_params)
 
-    for l in get_components(PSY.StandardLoad, sys)
+    for l in collect(get_components(PSY.StandardLoad, sys))
 
         p_tot, q_tot = _compute_total_load_parameters(l)
 
@@ -20,24 +20,50 @@ function create_ZIPE_load(sys, load_params)
         l.constant_reactive_power = q_tot * load_params.p_percent
 
         # Define a GFL inverter and set load setpoint to p_tot/q_tot * load_params.e_percent
-        
+        # bus = deepcopy(l.bus)
         static_inverter = create_static_inverter(l.bus, p_tot, q_tot, load_params)
-        # add_component!(sys, static_inverter)
+        add_component!(sys, static_inverter)
 
         GFL_inverter = create_GFL_inverter(static_inverter)
-        #add_component!(sys, GFL_inverter, static_inverter)
-
-        # for g in get_components(PSY.Generator, sys)
-        #     if g.bus.bustype == ACBusTypes.PV
-        #         if g.name == GFL_inverter.name
-        #             set_active_power!(g, p_tot * load_params.e_percent);
-        #             set_reactive_power!(g, q_tot * load_params.e_percent);
-        #         end
-        #     end
-        # end
-        
+        add_component!(sys, GFL_inverter, static_inverter)
     end
+end
 
+function create_static_inverter(bus, p_tot, q_tot, load_params)
+    static_inverter = RenewableDispatch(
+        name = "load_GFL_inverter"*string(bus.number),
+        available = true,
+        bus = bus,
+        active_power = - p_tot * load_params.e_percent,
+        reactive_power = - q_tot * load_params.e_percent,
+        rating = 99.00409082457148,
+        prime_mover_type = PrimeMovers.ES,
+        power_factor = p_tot/sqrt(p_tot^2 + q_tot^2),
+        operation_cost = TwoPartCost(
+            variable = VariableCost(
+                (0.0,
+                0.0)
+            ),
+            fixed = 0.0,
+        ),
+        reactive_power_limits = nothing,
+        base_power = 100.00
+        )
+    return static_inverter
+end
+
+function create_GFL_inverter(stat_inv)
+    case_inv = DynamicInverter(
+            stat_inv.name, 
+            1.0, # ω_ref,
+            converter_high_power(), #converter
+            GFL_outer_control(), #outer control
+            GFL_inner_control(), #inner control voltage source
+            dc_source_lv(), #dc source
+            pll(), #pll
+            filt(), #filter
+        )
+    return case_inv
 end
 
 #Define converter as an AverageConverter
@@ -77,43 +103,6 @@ filt() = LCLFilter(
     lg = 0.2, 
     rg = 0.01
 )
-
-function create_static_inverter(AC_bus, p_tot, q_tot, load_params)
-    static_inverter = RenewableDispatch(
-        name = "load_GFL_inverter",
-        available = true,
-        bus = AC_bus,
-        active_power = - p_tot * load_params.e_percent,
-        reactive_power = - q_tot * load_params.e_percent,
-        rating = 99.00409082457148,
-        prime_mover_type = PrimeMovers.ES,
-        power_factor = p_tot/sqrt(p_tot^2 + q_tot^2),
-        operation_cost = TwoPartCost(
-            variable = VariableCost(
-                (0.0,
-                0.0)
-            ),
-            fixed = 0.0,
-        ),
-        reactive_power_limits = nothing,
-        base_power = 100.00
-        )
-    return static_inverter
-end
-
-function create_GFL_inverter(stat_inv)
-    case_inv = DynamicInverter(
-            stat_inv.name, 
-            1.0, # ω_ref,
-            converter_high_power(), #converter
-            GFL_outer_control(), #outer control
-            GFL_inner_control(), #inner control voltage source
-            dc_source_lv(), #dc source
-            pll(), #pll
-            filt(), #filter
-        )
-    return case_inv
-end
 
 function _compute_total_load_parameters(load::PSY.StandardLoad)
     # Constant Power Data

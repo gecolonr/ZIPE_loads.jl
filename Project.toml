@@ -1,0 +1,19 @@
+name = "ZIPE_loads"
+uuid = "225bb7b7-2678-4700-8b69-4968695c3f23"
+authors = ["gecolonr <gecolonr@berkeley.edu> and contributors"]
+version = "1.0.0-DEV"
+
+[deps]
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+PowerSimulationsDynamics = "398b2ede-47ed-4edc-b52e-69e4a48b4336"
+PowerSystems = "bcd98974-b02a-5e2f-9ee0-a103f5c450dd"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

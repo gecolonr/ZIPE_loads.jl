@@ -20,12 +20,14 @@ function create_ZIPE_load(sys, load_params)
         l.constant_reactive_power = q_tot * load_params.p_percent
 
         # Define a GFL inverter and set load setpoint to p_tot/q_tot * load_params.e_percent
-        # bus = deepcopy(l.bus)
-        static_inverter = create_static_inverter(l.bus, p_tot, q_tot, load_params)
-        add_component!(sys, static_inverter)
+        
+        if load_params.e_percent > eps()
+            static_inverter = create_static_inverter(l.bus, p_tot, q_tot, load_params)
+            add_component!(sys, static_inverter)
 
-        GFL_inverter = create_GFL_inverter(static_inverter)
-        add_component!(sys, GFL_inverter, static_inverter)
+            GFL_inverter = create_GFL_inverter(static_inverter)
+            add_component!(sys, GFL_inverter, static_inverter)
+        end
     end
 end
 

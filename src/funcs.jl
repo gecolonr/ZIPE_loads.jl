@@ -48,7 +48,7 @@ function create_static_inverter(bus, p_tot, q_tot, load_params)
             ),
             fixed = 0.0,
         ),
-        reactive_power_limits = nothing,
+        reactive_power_limits = (min=-100.0, max=100.0),
         base_power = 100.00
         )
     return static_inverter
